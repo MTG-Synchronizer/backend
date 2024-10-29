@@ -1,50 +1,18 @@
-version: '3.9'
-
 services:
   neo4j:
+    container_name: neo4j
     image: neo4j:${NEO4J_VERSION}
-    restart: unless-stopped
+    ports:
+      - 7474:7474
+      - 7687:7687
     environment:
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
-      - NEO4J_PLUGINS=["graph-data-science", "apoc"]
-      # DB and server
-      - NEO4J_server_memory_pagecache_size=1G
-      - NEO4J_server_memory_heap_initial__size=1G
-      - NEO4J_server_memory_heap_max__size=2G
-      - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
-    ports:
-      - 7687:7687
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
     volumes:
-      - logs:/logs
-      - data:/data
-      - plugins:/plugins
-      - import:/import
-    networks:
-      - wine
-
-  fastapi:
-    image: neo4j_wine_fastapi:${TAG}
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    ports:
-      - ${API_PORT}:8000
-    depends_on:
-      - neo4j
-    volumes:
-      - ./:/wine
-    networks:
-      - wine
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
-
-
-volumes:
-  logs:
-  data:
-  plugins:
-  import:
-
-networks:
-  wine:
-    driver: bridge
+      - ./neo4j_db/data:/data
+      - ./neo4j_db/logs:/logs
+      - ./neo4j_db/import:/var/lib/neo4j/import
+      - ./neo4j_db/plugins:/plugins

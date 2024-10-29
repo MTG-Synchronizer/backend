@@ -135,6 +135,8 @@ data/*.json
 data/*.jsonl
 data/*.jsonl.gz
 
+#neo4j Database Files
+neo4j_db/*
 
 #vscode
 .vscode/*
