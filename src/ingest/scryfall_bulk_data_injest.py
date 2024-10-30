@@ -1,44 +1,21 @@
 import argparse
 import asyncio
-import requests
 import os
 import sys
-from functools import lru_cache
-from pathlib import Path
-from typing import Any, Iterator
 
-from pydantic import ValidationError
+from pathlib import Path
+from typing import Any
+
 from codetiming import Timer
-from dotenv import load_dotenv
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
-from config.settings import Settings
 from schemas.mtg_card import MtgCard
+from ingest.utils import chunk_iterable, fetch_url, get_settings
+
 
 # Custom types
 JsonBlob = dict[str, Any]
-
-
-class FileNotFoundError(Exception):
-    pass
-
-
-# --- Blocking functions ---
-
-@lru_cache()
-def get_settings():
-    load_dotenv()
-    # Use lru_cache to avoid loading .env file for every request
-    return Settings()
-
-
-def chunk_iterable(item_list: list[JsonBlob], chunksize: int) -> Iterator[list[JsonBlob]]:
-    """
-    Break a large iterable into an iterable of smaller iterables of size `chunksize`
-    """
-    for i in range(0, len(item_list), chunksize):
-        yield item_list[i : i + chunksize]
 
 @Timer(name="pydantic validator")
 def validate(
@@ -47,17 +24,6 @@ def validate(
 ) -> list[JsonBlob]:
     validated_data = [MtgCard(**item).model_dump(exclude_none=exclude_none) for item in data]
     return validated_data
-
-
-def fetch_url(url: str) -> dict:
-    response = requests.get(url)
-    
-    # Check if the request was successful
-    if response.status_code == 200:
-    # Parse the HTML content
-        return response.json()
-    else:
-        raise Exception(f"Failed to retrieve the webpage. Status code: {response.status_code}")
     
 
 def get_scryfall_bulk_data(url):
