@@ -131,9 +131,7 @@ dmypy.json
 .DS_Store
 
 # data
-data/*.json
-data/*.jsonl
-data/*.jsonl.gz
+data/*
 
 #neo4j Database Files
 neo4j_db/*

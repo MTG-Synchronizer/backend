@@ -51,6 +51,7 @@ class MtgCard(BaseModel):
     keywords: List[str]
     legalities: MtgCardLegalities
     rarity: str
+    type_line: str
 
     class Config:
         extra = Extra.ignore

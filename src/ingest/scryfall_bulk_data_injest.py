@@ -11,7 +11,8 @@ from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from schemas.mtg_card import MtgCard
-from ingest.utils import chunk_iterable, fetch_url, get_settings
+from utils.request import fetch_url
+from utils.ingest import chunk_iterable, get_settings
 
 
 # Custom types
@@ -40,9 +41,12 @@ def get_scryfall_bulk_data(url):
 async def create_indexes_and_constraints(session: AsyncSession) -> None:
     queries = [
         # constraints
-        "CREATE CONSTRAINT name IF NOT EXISTS FOR (c:Card) REQUIRE c.name IS UNIQUE ",
+        "CREATE CONSTRAINT full_name IF NOT EXISTS FOR (c:Card) REQUIRE c.full_name IS UNIQUE",
+        "CREATE CONSTRAINT name_front IF NOT EXISTS FOR (c:Card) REQUIRE c.name_front IS UNIQUE",
+
         # indexes
         "CREATE INDEX oracle_id IF NOT EXISTS FOR (c:Card) ON (c.oracle_id) ",
+        "CREATE INDEX price_usd IF NOT EXISTS FOR (c:Card) ON (c.price_usd) ",
         ]
     for query in queries:
          await session.run(query)
@@ -51,9 +55,17 @@ async def create_indexes_and_constraints(session: AsyncSession) -> None:
 async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None:
     query = """
         UNWIND $data AS record
-        MERGE (c:Card {name: record.name})
+        WITH record,
+            split(toUpper(record.name), " // ") AS names,
+            apoc.text.split(record.type_line, " // | — ") AS types
+        MERGE (c:Card {name_front: names[0]})
         SET
-            c.name = record.name,
+            c.full_name = toUpper(record.name),
+            c.name_front = names[0],
+            c.name_back = names[1],
+
+            c.types = types,
+
             c.oracle_id = record.oracle_id,
             c.colors = record.colors,
             c.cmc = record.cmc,
