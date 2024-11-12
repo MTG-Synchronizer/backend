@@ -138,3 +138,6 @@ neo4j_db/*
 
 #vscode
 .vscode/*
+
+#service account keys
+service-account.json
