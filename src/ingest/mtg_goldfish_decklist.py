@@ -85,9 +85,9 @@ if __name__ == "__main__":
 
     # Neo4j setup
     settings = get_settings()
-    URI = f"bolt://{settings.neo4j_url}:7687"
-    NEO4J_USER = settings.neo4j_user
-    NEO4J_PASSWORD = settings.neo4j_password
+    URI = f"bolt://{settings.NEO4J_URL}:7687"
+    NEO4J_USER = settings.NEO4J_USER
+    NEO4J_PASSWORD = settings.NEO4J_PASSWORD
     CHUNKSIZE = args["chunksize"]
 
     metagame_data = load_data("metagame.json")

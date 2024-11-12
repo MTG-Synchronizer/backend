@@ -147,9 +147,9 @@ if __name__ == "__main__":
 
     # # Neo4j
     settings = get_settings()
-    URI = f"bolt://{settings.neo4j_url}:7687"
-    NEO4J_USER = settings.neo4j_user
-    NEO4J_PASSWORD = settings.neo4j_password
+    URI = f"bolt://{settings.NEO4J_URL}:7687"
+    NEO4J_USER = settings.NEO4J_USER
+    NEO4J_PASSWORD = settings.NEO4J_PASSWORD
     
 
     data = list(get_scryfall_bulk_data(SCRYFALL_BULK_DATA_URL))
