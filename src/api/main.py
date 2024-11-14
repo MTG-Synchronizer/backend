@@ -1,12 +1,19 @@
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import Annotated
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
-from fastapi import Depends, FastAPI
+import uvicorn
+from api.routers import user
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+from config.settings import get_settings
 from neo4j import AsyncGraphDatabase
-from config.settings import get_firebase_user_from_token, get_settings
-from fastapi.middleware.cors import CORSMiddleware
+
+# Check if the default app is already initialized
+if not firebase_admin._apps:
+    cred = credentials.Certificate("service-account.json")
+    firebase_admin.initialize_app(cred)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -30,6 +37,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+    # TODO set to Frontend URL
     # allow_origins=[get_settings().FRONTEND_URL],
     allow_origins=["*"],
     allow_credentials=True,
@@ -37,16 +45,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-cred = credentials.Certificate("service-account.json")
-firebase_admin.initialize_app(cred)
-
 @app.get("/", include_in_schema=False)
 async def root():
     return {
-        "message": "REST API for querying Neo4j database of 130k wine reviews from the Wine Enthusiast magazine"
+        "message": "Welcome to the MTG Decklist API",
     }
 
-@app.get("/userid")
-async def get_userid(user: Annotated[dict, Depends(get_firebase_user_from_token)]):
-    """gets the firebase connected user"""
-    return {"id": user["uid"]}
+app.include_router(user.router, prefix="/v1/user", tags=["user"])
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
