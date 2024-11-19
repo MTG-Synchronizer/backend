@@ -1,8 +1,11 @@
-from pydantic import BaseModel, field_validator
-
-from utils.card import format_card_name_front
-
+from typing import Optional
+from pydantic import BaseModel
 
 class CardInCollection(BaseModel):
     name: str
     quantity: int
+
+class CreateSet(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    
