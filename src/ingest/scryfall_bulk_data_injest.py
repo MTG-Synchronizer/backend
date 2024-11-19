@@ -10,7 +10,7 @@ from codetiming import Timer
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
-from schemas.mtg_card import MtgCard
+from schemas.db.mtg_card import MtgCard
 from utils.request import fetch_url
 from utils.ingest import chunk_iterable, get_settings
 
