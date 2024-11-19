@@ -19,7 +19,7 @@ if not firebase_admin._apps:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Async context manager for MongoDB connection."""
     settings = get_settings()
-    URI = f"bolt://{settings.NEO4J_SERVICE}:7687"
+    URI = f"bolt://{settings.NEO4J_URL}:7687"
     AUTH = (settings.NEO4J_USER, settings.NEO4J_PASSWORD)
     async with AsyncGraphDatabase.driver(URI, auth=AUTH) as driver:
         async with driver.session(database="neo4j") as session:
