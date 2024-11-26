@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
 import uvicorn
-from api.routers import user, card
+from api.routers import collection, set, user
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from config.settings import get_settings
@@ -51,8 +51,9 @@ async def root():
         "message": "Welcome to the MTG Decklist API",
     }
 
-app.include_router(user.router, prefix="/v1/user", tags=["user"])
-app.include_router(card.router, prefix="/v1/card", tags=["card"])
+app.include_router(user.router, prefix="/user", tags=["user"])
+app.include_router(set.router, prefix="/card", tags=["card"])
+app.include_router(collection.router, prefix="/collection", tags=["set"])
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
