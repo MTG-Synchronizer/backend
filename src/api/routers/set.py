@@ -8,7 +8,7 @@ from schemas.api.set import RequestCreateSet
 router = APIRouter()
 
 
-@router.post("/set")
+@router.post("/")
 async def create_set(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
@@ -19,7 +19,7 @@ async def create_set(
     result = await session.execute_write(service.create_set, user["uid"], set.dict())
     return result
 
-@router.post("/set/{set_id}/cards")
+@router.post("/{set_id}/cards")
 async def add_cards_to_set(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
@@ -31,7 +31,7 @@ async def add_cards_to_set(
     result = await session.execute_write(service.add_cards_to_set, user["uid"], set_id, cards)
     return result
 
-@router.get("/sets")
+@router.get("/")
 async def get_sets(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)]
@@ -41,7 +41,7 @@ async def get_sets(
     result = await session.execute_read(service.get_sets, user["uid"])
     return result
 
-@router.get("/set/{set_id}")
+@router.get("/{set_id}")
 async def get_cards_in_set(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
@@ -52,7 +52,7 @@ async def get_cards_in_set(
     result = await session.execute_read(service.get_cards_in_set, user["uid"], set_id)
     return result
 
-@router.delete("/set")
+@router.delete("/{set_id}")
 async def delete_set(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
