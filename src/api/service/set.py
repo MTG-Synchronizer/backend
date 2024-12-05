@@ -1,11 +1,12 @@
 from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
+from schemas import UUID4str
 from schemas.api.set import RequestCreateSet
-from utils.card import format_card_name_front
+from utils.card import get_formatted_card
 
 
-async def check_if_user_owns_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID) -> bool:
+async def check_if_user_has_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID) -> bool:
     """ Checks if a user owns a set """
     query = """
     MATCH (u:User {uid: $uid})-[:Has]->(s:Set {id: $set_id})
@@ -21,7 +22,7 @@ async def create_set(tx: AsyncManagedTransaction, uid: UUID, set: RequestCreateS
     query = """
     MATCH (u:User {uid: $uid})
     CREATE (s:Set {set_id: apoc.create.uuid(), name: $set.name, description: $set.description})
-    MERGE (u)-[:Owns]->(s)
+    MERGE (u)-[:Has]->(s)
     RETURN s
     """
 
@@ -38,7 +39,7 @@ async def get_sets(tx: AsyncManagedTransaction, uid: UUID):
     return await response.data()
 
 async def delete_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID):
-    check_if_user_owns_set(tx, uid, set_id)
+    check_if_user_has_set(tx, uid, set_id)
 
     """ Deletes a set of cards """
     query = """
@@ -48,22 +49,21 @@ async def delete_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID):
     response = await tx.run(query, uid=uid, set_id=set_id)
     return await response.data()
 
-async def add_cards_to_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID, cards: list[str]):
-    check_if_user_owns_set(tx, uid, set_id)
+async def add_cards_to_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID, scryfall_ids: UUID4str):
+    check_if_user_has_set(tx, uid, set_id)
 
     """ Adds cards to a set """
     query = """
     MATCH (s:Set {set_id: $set_id})
-    UNWIND $cards AS card
-    MATCH (c:Card {name_front: card})
+    UNWIND $scryfall_ids AS scryfall_id
+    MATCH (c:Card {scryfall_id: scryfall_id})
     MERGE (s)-[:Contains]->(c)
     """
-    cards = [format_card_name_front(card) for card in cards]
-    response = await tx.run(query, uid=uid, set_id=set_id, cards=cards)
+    response = await tx.run(query, uid=uid, set_id=set_id, scryfall_ids=scryfall_ids)
     return await response.data()
 
 async def get_cards_in_set(tx: AsyncManagedTransaction, uid: UUID, set_id: UUID):
-    check_if_user_owns_set(tx, uid, set_id)
+    check_if_user_has_set(tx, uid, set_id)
 
     """ Gets all the cards in a set """
     query = """

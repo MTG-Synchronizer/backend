@@ -5,7 +5,7 @@ from utils.ingest import chunk_iterable, get_settings
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 from codetiming import Timer
 
-from utils.card import format_card_name_front
+from utils.card import get_formatted_card
 
 
 def load_data(file_name: str) -> list:
@@ -17,7 +17,7 @@ def load_data(file_name: str) -> list:
     for category in data:
         for deck in data[category]:
             cards = data[category][deck]
-            cards = [format_card_name_front(card[1]) for card in cards]
+            cards = [get_formatted_card(card[1])[0] for card in cards]
             decks.append(cards)
     
     return decks

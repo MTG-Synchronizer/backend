@@ -52,8 +52,8 @@ async def root():
     }
 
 app.include_router(user.router, prefix="/user", tags=["user"])
-app.include_router(set.router, prefix="/card", tags=["card"])
-app.include_router(collection.router, prefix="/collection", tags=["set"])
+app.include_router(set.router, prefix="/set", tags=["set"])
+app.include_router(collection.router, prefix="/collection", tags=["collection"])
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

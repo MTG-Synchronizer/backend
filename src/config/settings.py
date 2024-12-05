@@ -39,6 +39,7 @@ def get_firebase_user_from_token(
     Raises:
         HTTPException 401 if user does not exist or token is invalid
     """
+
     try:
         if not token:
             # raise and catch to return 401, only needed because fastapi returns 403

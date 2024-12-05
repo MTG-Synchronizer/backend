@@ -9,8 +9,10 @@ from typing import Any
 from codetiming import Timer
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 
+from utils.card import get_formatted_card, get_fromatted_types
+
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
-from schemas.db.mtg_card import MtgCard
+from schemas.ingest.mtg_card import MtgCard
 from utils.request import fetch_url
 from utils.ingest import chunk_iterable, get_settings
 
@@ -43,9 +45,9 @@ async def create_indexes_and_constraints(session: AsyncSession) -> None:
         # constraints
         "CREATE CONSTRAINT full_name IF NOT EXISTS FOR (c:Card) REQUIRE c.full_name IS UNIQUE",
         "CREATE CONSTRAINT name_front IF NOT EXISTS FOR (c:Card) REQUIRE c.name_front IS UNIQUE",
-
+        "CREATE CONSTRAINT scryfall_id IF NOT EXISTS FOR (c:Card) REQUIRE c.scryfall_id IS UNIQUE",
+        
         # indexes
-        "CREATE INDEX oracle_id IF NOT EXISTS FOR (c:Card) ON (c.oracle_id) ",
         "CREATE INDEX price_usd IF NOT EXISTS FOR (c:Card) ON (c.price_usd) ",
         ]
     for query in queries:
@@ -55,18 +57,15 @@ async def create_indexes_and_constraints(session: AsyncSession) -> None:
 async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None:
     query = """
         UNWIND $data AS record
-        WITH record,
-            split(toUpper(record.name), " // ") AS names,
-            apoc.text.split(record.type_line, " // | — ") AS types
-        MERGE (c:Card {name_front: names[0]})
+        MERGE (c:Card {name_front: record.name_front})
         SET
+            c.scryfall_id = record.id,
             c.full_name = toUpper(record.name),
-            c.name_front = names[0],
-            c.name_back = names[1],
+            c.name_front = record.name_front,
+            c.name_back = record.name_back,
 
-            c.types = types,
+            c.types = record.types,
 
-            c.oracle_id = record.oracle_id,
             c.colors = record.colors,
             c.cmc = record.cmc,
             c.keywords = record.keywords,
@@ -102,10 +101,14 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
         """
     await tx.run(query, data=data)
 
-
-def convert_oracle_id_to_string(data: list[dict]) -> list[dict]:
+def format_data(data: list[dict]) -> list[dict]:
     for record in data:
-        record["oracle_id"] = str(record["oracle_id"])
+        record["id"] = str(record["id"])
+
+        formatted_names = get_formatted_card(record['name'])
+        record['name_front'] = formatted_names[0]
+        record['name_back'] = formatted_names[1]
+        record['types'] = get_fromatted_types(record['type_line'])
     return data
 
 async def main(data: list[JsonBlob]) -> None:
@@ -116,10 +119,10 @@ async def main(data: list[JsonBlob]) -> None:
             # Ingest the data into Neo4j
             print("Validating data...")
             validated_data = validate(data, exclude_none=True)
-            validated_data = convert_oracle_id_to_string(validated_data)
+            formatted_data = format_data(validated_data)
             
             # Break the data into chunks
-            chunked_data = chunk_iterable(validated_data, CHUNKSIZE)
+            chunked_data = chunk_iterable(formatted_data, CHUNKSIZE)
             print("Ingesting data...")
             with Timer(name="ingest"):
                 for idx, chunk in enumerate(chunked_data):
