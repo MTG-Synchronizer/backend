@@ -2,13 +2,12 @@ from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
 from schemas.api.collection import RequestUpdateCardInCollection, ResponseCardInCollection
-from utils.card import get_formatted_card
 
 async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardInCollection]:
     """ Returns the user's collection """
     query = """
     MATCH (u:User {uid: $uid})-[r:Owns]->(c:Card)
-    RETURN c.scryfall_id as scryfall_id, r.quantity as number_owned
+    RETURN c as node, r.quantity as number_owned
     """
     response = await tx.run(query, uid=uid)
     return await response.data()
@@ -56,7 +55,7 @@ async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid:
     
     // Return the card scryfall id and the quantity
     RETURN 
-    c.scryfall_id as scryfall_id, 
+    c as node,
     CASE WHEN quantity <= 0 THEN 0 ELSE r.quantity END AS number_owned
     """
     

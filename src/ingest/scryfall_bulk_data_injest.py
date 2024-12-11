@@ -25,8 +25,13 @@ def validate(
     data: list[JsonBlob],
     exclude_none: bool = False,
 ) -> list[JsonBlob]:
-    validated_data = [MtgCard(**item).model_dump(exclude_none=exclude_none) for item in data]
-    return validated_data
+    try:
+        validated_data = [MtgCard(**item).model_dump(exclude_none=exclude_none) for item in data]
+        return validated_data
+    except Exception as e:
+        print(e)
+        raise Exception("Failed to validate data")
+    
     
 
 def get_scryfall_bulk_data(url):
@@ -71,12 +76,8 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
             c.keywords = record.keywords,
             c.rarity = record.rarity,
 
-            c.img_uri_small = record.image_uris.small
-            c.img_uri_normal = record.image_uris.normal
-            c.img_uri_large = record.image_uris.large
-            c.img_uri_png = record.image_uris.png
-            c.img_uri_art_crop = record.image_uris.art_crop
-            c.img_uri_border_crop = record.image_uris.border_crop
+            c.img_uris_small = record.image_uris.small,
+            c.img_uris_normal = record.image_uris.normal,
 
             c.price_usd = record.prices.usd,
             c.price_usd_foil = record.prices.usd_foil,
@@ -108,14 +109,31 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
         """
     await tx.run(query, data=data)
 
-def format_data(data: list[dict]) -> list[dict]:
-    for record in data:
-        record["id"] = str(record["id"])
+def get_image_uris(card: MtgCard) -> dict:
+    image_uris = {
+        "small": [],
+        "normal": [],
+    }
 
+    if "image_uris" in card:
+        image_uris["small"].append(card["image_uris"]["small"])
+        image_uris["normal"].append(card["image_uris"]["normal"])
+    elif "card_faces" in card:
+        for face in card["card_faces"]:
+            image_uris["small"].append(face["image_uris"]["small"])
+            image_uris["normal"].append(face["image_uris"]["normal"])
+    else:
+        raise Exception("No image_uris or card_faces found")
+        
+    return image_uris
+
+def format_data(data: list[MtgCard]) -> list[MtgCard]:
+    for record in data:
         formatted_names = get_formatted_card(record['name'])
         record['name_front'] = formatted_names[0]
         record['name_back'] = formatted_names[1]
         record['types'] = get_fromatted_types(record['type_line'])
+        record['image_uris'] = get_image_uris(record)
     return data
 
 async def main(data: list[JsonBlob]) -> None:
