@@ -1,9 +1,8 @@
-from pydantic import BaseModel, UUID4, AnyHttpUrl, Extra, Field
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional
 from typing import List, Optional
 
-from pydantic import BaseModel, AnyHttpUrl, UUID4
-from datetime import datetime
-from typing import List, Optional
+from schemas import URLstr, UUID4str
 
 class MtgCardPrices(BaseModel):
     usd: Optional[float]
@@ -35,16 +34,15 @@ class MtgCardLegalities(BaseModel):
     premodern:Optional[str]
 
 class MtgImageUris(BaseModel):
-    art_crop: Optional[AnyHttpUrl]
-    border_crop: Optional[AnyHttpUrl]
-    large: Optional[AnyHttpUrl]
-    normal: Optional[AnyHttpUrl]
-    png: Optional[AnyHttpUrl]
-    small: Optional[AnyHttpUrl]
+    small: URLstr
+    normal: URLstr
+
+class CardFace(BaseModel):
+    image_uris: Optional[MtgImageUris] = None
 
 class MtgCard(BaseModel):
     name: str
-    id: UUID4
+    id: UUID4str
     prices: MtgCardPrices
     colors: List[str] = Field(default_factory=list)
     cmc: float
@@ -52,6 +50,15 @@ class MtgCard(BaseModel):
     legalities: MtgCardLegalities
     rarity: str
     type_line: str
+    image_uris: Optional[MtgImageUris] = None
+    card_faces: Optional[List[CardFace]] = None
 
     class Config:
-        extra = Extra.ignore
+        extra = 'ignore'
+
+
+    @model_validator(mode='after')
+    def validate_image_uris(self):
+        if not self.image_uris and not self.card_faces:
+            raise ValueError("Either 'image_uris' or 'card_faces' must be provided.")
+        return self

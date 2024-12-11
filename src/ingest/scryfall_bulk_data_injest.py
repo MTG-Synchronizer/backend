@@ -71,6 +71,13 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
             c.keywords = record.keywords,
             c.rarity = record.rarity,
 
+            c.img_uri_small = record.image_uris.small
+            c.img_uri_normal = record.image_uris.normal
+            c.img_uri_large = record.image_uris.large
+            c.img_uri_png = record.image_uris.png
+            c.img_uri_art_crop = record.image_uris.art_crop
+            c.img_uri_border_crop = record.image_uris.border_crop
+
             c.price_usd = record.prices.usd,
             c.price_usd_foil = record.prices.usd_foil,
             c.price_eur = record.prices.eur,
