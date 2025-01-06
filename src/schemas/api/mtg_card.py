@@ -22,7 +22,7 @@ class MtgCard(BaseModel):
     img_uris_normal: List[URLstr]
 
 
-    price_usd: float
+    price_usd: Optional[float] = None
     price_usd_foil: Optional[float] = None
     price_eur: Optional[float] = None
     price_tix: Optional[float] = None

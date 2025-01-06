@@ -2,6 +2,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
 from schemas.api.collection import RequestUpdateCardInCollection, ResponseCardInCollection
+from utils.card import get_formatted_card
 
 async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardInCollection]:
     """ Returns the user's collection """
@@ -17,12 +18,12 @@ async def check_cards_exist(tx: AsyncManagedTransaction, cards: list[str]) -> No
     """ Checks if a list of cards exist, Raise HTTPException if not """
     query = """
     UNWIND $cards AS card
-    MATCH (c:Card {scryfall_id: card})
-    RETURN c.scryfall_id
+    MATCH (c:Card {name_front: card})
+    RETURN c.name_front
     """
     response = await tx.run(query, cards=cards)
     matching_cards = await response.data()
-    matching_cards = [card["c.scryfall_id"] for card in matching_cards]
+    matching_cards = [card["c.name_front"] for card in matching_cards]
 
     missing_cards = set(cards) - set(matching_cards)
 
@@ -31,14 +32,21 @@ async def check_cards_exist(tx: AsyncManagedTransaction, cards: list[str]) -> No
 
 
 async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid: UUID, cards: list[RequestUpdateCardInCollection]) -> list[ResponseCardInCollection]:
-    cards = [card.model_dump() for card in cards]
-    await check_cards_exist(tx, [card["scryfall_id"] for card in cards])
+    dump = [card.model_dump() for card in cards]
+    cards = [
+        {
+            "name_front": get_formatted_card(card["name"])[0],
+            "update_amount": card["update_amount"]
+        } for card in dump
+    ]
+
+    await check_cards_exist(tx, [card["name_front"] for card in cards])
 
     """ Adds or removes cards from the user's collection """
     query = """
     MATCH (u:User {uid: $uid})
     UNWIND $cards AS card
-    MATCH (c:Card {scryfall_id: card.scryfall_id})
+    MATCH (c:Card {name_front: card.name_front})
     
     // Create or update the relationship between the user and the card
     MERGE (u)-[r:Owns]->(c)
