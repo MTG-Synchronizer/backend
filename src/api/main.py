@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
 import uvicorn
-from api.routers import collection, set, user
+from api.routers import collection, pool, user
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from config.settings import get_settings
@@ -52,7 +52,7 @@ async def root():
     }
 
 app.include_router(user.router, prefix="/user", tags=["user"])
-app.include_router(set.router, prefix="/set", tags=["set"])
+app.include_router(pool.router, prefix="/pool", tags=["pool"])
 app.include_router(collection.router, prefix="/collection", tags=["collection"])
 
 if __name__ == "__main__":
