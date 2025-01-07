@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, model_validator
 from typing import List, Optional
 
 from schemas import URLstr, UUID4str
@@ -48,3 +48,19 @@ class MtgCard(BaseModel):
     legality_duel: Optional[str]
     legality_oldschool: Optional[str]
     legality_premodern: Optional[str]
+
+
+
+class RequestUpdateCardCount(BaseModel):
+    name: Optional[str] = None
+    scryfall_id: Optional[UUID4str] = None
+    update_amount: int
+
+    @model_validator(mode='after')
+    def check_name_or_scryfall_id(self):
+        if not self.name and not self.scryfall_id:
+            raise ValueError('Either name or scryfall_id must be provided.')
+        return self
+    
+class RequestUpdateCardCountResponse(RequestUpdateCardCount):
+    node: MtgCard
