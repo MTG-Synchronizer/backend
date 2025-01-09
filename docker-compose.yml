@@ -1,4 +1,18 @@
 services:
+  fastapi-app:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env
+      volumes:
+        - ./src:/app/src
+      restart: always
+      command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      depends_on:
+        - neo4j
   neo4j:
     container_name: neo4j
     image: neo4j:${NEO4J_VERSION}

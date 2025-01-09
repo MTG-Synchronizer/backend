@@ -1,14 +1,20 @@
-
 FROM python:3.11-slim-bullseye
 
-WORKDIR /wine
+# Set the working directory in the container
+WORKDIR /app
 
-COPY ./requirements.txt /wine/requirements.txt
+# Copy the environment file and requirements.txt from the root directory
+COPY .env /app/.env
+COPY service-account.json /app/service-account.json
+COPY requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade -r /wine/requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./src/api /wine/api
-COPY ./src/config /wine/config
-COPY ./src/schemas /wine/schemas
+# Copy the src directory into the container
+# COPY src/ /app/src/
 
+# Expose the port that the app runs on
 EXPOSE 8000
+
+

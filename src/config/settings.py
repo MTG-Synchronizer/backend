@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    NEO4J_URL: str
+    SERVER_HOST: str
     NEO4J_SERVICE: str
     NEO4J_USER: str
     NEO4J_PASSWORD: str
