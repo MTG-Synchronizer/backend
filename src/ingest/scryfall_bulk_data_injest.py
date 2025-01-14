@@ -141,16 +141,32 @@ def get_faces_data(card: MtgCard) -> list[dict]:
 
     return d
 
-def format_data(data: list[MtgCard]) -> list[MtgCard]:
+def preprocess_card_data(data: list[MtgCard]) -> list[MtgCard]:
+    idx_to_delete = []
+
     for record in data:
+        # Set cards with the layout "art_series" to be deleted
+        if record['layout'] == "art_series":
+            idx_to_delete.append(data.index(record))
+            continue
+        
+        # Format the card names
         formatted_names = get_formatted_card(record['name'])
         record['name_front'] = formatted_names[0]
         record['name_back'] = formatted_names[1]
+        
+        # Format the card types
         record['types'] = get_fromatted_types(record['type_line'])
         
+        # Get the faces data (image URIs and oracle texts)
         faces_data = get_faces_data(record)
         record['image_uris'] = faces_data['image_uris']
         record['oracle_texts'] = faces_data['oracle_texts']
+    
+    # Delete the cards with the layout "art_series"
+    for idx in reversed(idx_to_delete):
+        del data[idx]
+    
     return data
 
 async def main(data: list[JsonBlob]) -> None:
@@ -159,12 +175,12 @@ async def main(data: list[JsonBlob]) -> None:
             # Create indexes and constraints
             await create_indexes_and_constraints(session)
             # Ingest the data into Neo4j
-            print("Validating data...")
+            print("Processing data...")
             validated_data = validate(data, exclude_none=True)
-            formatted_data = format_data(validated_data)
+            processed_data = preprocess_card_data(validated_data)
             
             # Break the data into chunks
-            chunked_data = chunk_iterable(formatted_data, CHUNKSIZE)
+            chunked_data = chunk_iterable(processed_data, CHUNKSIZE)
             print("Ingesting data...")
             with Timer(name="ingest"):
                 for idx, chunk in enumerate(chunked_data):

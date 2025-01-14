@@ -54,6 +54,7 @@ class MtgCard(BaseModel):
     type_line: str
     image_uris: Optional[MtgImageUris] = None
     card_faces: Optional[List[CardFace]] = None
+    layout: str
 
     class Config:
         extra = 'ignore'
