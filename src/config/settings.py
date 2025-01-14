@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     TAG: str
     FRONTEND_URL: str
 
-
 @lru_cache()
 def get_settings() -> Settings:
     # Use lru_cache to avoid loading .env file for every request

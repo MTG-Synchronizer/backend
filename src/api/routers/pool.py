@@ -4,6 +4,7 @@ from typing import Annotated
 from config.settings import get_firebase_user_from_token, get_settings
 from api.service import pool as service
 from schemas import UUID4str
+from schemas.api.mtg_card import RequestUpdateCardCount
 from schemas.api.pool import RequestCreatePool
 
 router = APIRouter()
@@ -45,11 +46,11 @@ async def add_cards_to_pool(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
     pool_id: str,
-    scryfall_ids: list[UUID4str]
+    cards: list[RequestUpdateCardCount]
 ):
     """adds cards to a pool"""
     session = request.app.session
-    result = await session.execute_write(service.add_cards_to_pool, user["uid"], pool_id, scryfall_ids)
+    result = await session.execute_write(service.update_number_of_cards_in_pool, user["uid"], pool_id, cards)
     return result
 
 @router.get("/{pool_id}/cards")

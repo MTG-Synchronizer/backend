@@ -1,9 +1,9 @@
 from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
-from schemas import UUID4str
+from api.service.card import get_cards, handle_card_count_updates
+from schemas.api.mtg_card import RequestUpdateCardCount
 from schemas.api.pool import RequestCreatePool
-from utils.card import get_formatted_card
 
 
 async def check_if_user_has_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> bool:
@@ -50,18 +50,26 @@ async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     response = await tx.run(query, uid=uid, pool_id=pool_id)
     return await response.data()
 
-async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, scryfall_ids: UUID4str):
+async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]):
     check_if_user_has_pool(tx, uid, pool_id)
+    card_nodes = await get_cards(tx, cards)
 
-    """ Adds cards to a pool """
+    """ Adds or removes cards from the pool"""
     query = """
     MATCH (p:Pool {pool_id: $pool_id})
-    UNWIND $scryfall_ids AS scryfall_id
-    MATCH (c:Card {scryfall_id: scryfall_id})
-    MERGE (p)-[:CONTAINS]->(c)
+    UNWIND $cards AS card
+    MATCH (c:Card {scryfall_id: card.node.scryfall_id})
+    
+    // Create or update the relationship between the pool and the card
+    MERGE (p)-[r:CONTAINS]->(c)
     """
-    response = await tx.run(query, uid=uid, pool_id=pool_id, scryfall_ids=scryfall_ids)
+
+    # Set the quantity of the relationship
+    query += handle_card_count_updates    
+
+    response = await tx.run(query, uid=uid, pool_id=pool_id, cards=card_nodes)
     return await response.data()
+
 
 async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     check_if_user_has_pool(tx, uid, pool_id)

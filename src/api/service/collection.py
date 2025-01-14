@@ -1,10 +1,8 @@
 from uuid import UUID
-from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
 from schemas.api.collection import ResponseCardInCollection
 from schemas.api.mtg_card import RequestUpdateCardCount
-from utils.card import get_formatted_card
-from api.service.card import get_cards
+from api.service.card import get_cards, handle_card_count_updates
 
 async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardInCollection]:
     """ Returns the user's collection """
@@ -27,22 +25,9 @@ async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid:
     
     // Create or update the relationship between the user and the card
     MERGE (u)-[r:Owns]->(c)
-
-    // Set the quantity of the relationship
-    ON CREATE SET r.quantity = COALESCE(card.update_amount, card.number_owned)
-    ON MATCH SET r.quantity = COALESCE(card.number_owned, r.quantity + card.update_amount)
-
-    // Use a conditional operation for deletion
-    WITH c, r, r.quantity AS quantity
-    FOREACH (_ IN CASE WHEN quantity <= 0 THEN [1] ELSE [] END |
-        DELETE r
-    )
-    
-    // Return the card scryfall id and the quantity
-    RETURN 
-    c as node,
-    CASE WHEN quantity <= 0 THEN 0 ELSE r.quantity END AS number_owned
     """
+
+    query += handle_card_count_updates
     
     response = await tx.run(query, uid=uid, cards=card_nodes)
     return await response.data()
