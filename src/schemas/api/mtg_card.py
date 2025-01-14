@@ -9,6 +9,8 @@ class MtgCard(BaseModel):
     name_front: str
     name_back: Optional[str] = None
 
+    oracle_texts: list[str]
+
     total_recurrences: Optional[int]
 
     types: List[str]

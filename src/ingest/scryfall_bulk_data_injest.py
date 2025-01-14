@@ -69,6 +69,8 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
             c.name_front = record.name_front,
             c.name_back = record.name_back,
 
+            c.oracle_texts = record.oracle_texts,
+
             c.types = record.types,
 
             c.colors = record.colors,
@@ -109,23 +111,35 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
         """
     await tx.run(query, data=data)
 
-def get_image_uris(card: MtgCard) -> dict:
-    image_uris = {
-        "small": [],
-        "normal": [],
+def get_faces_data(card: MtgCard) -> list[dict]:
+    d = {
+        "image_uris": {
+            "small": [],
+            "normal": [],
+        },
+        "oracle_texts": [],
     }
 
     if "image_uris" in card:
-        image_uris["small"].append(card["image_uris"]["small"])
-        image_uris["normal"].append(card["image_uris"]["normal"])
-    elif "card_faces" in card:
+        d['image_uris']["small"].append(card["image_uris"]["small"])
+        d['image_uris']["normal"].append(card["image_uris"]["normal"])
+    if "oracle_text" in card:
+        d['oracle_texts'].append(card["oracle_text"])
+    
+    if "card_faces" in card:
         for face in card["card_faces"]:
-            image_uris["small"].append(face["image_uris"]["small"])
-            image_uris["normal"].append(face["image_uris"]["normal"])
-    else:
-        raise Exception("No image_uris or card_faces found")
-        
-    return image_uris
+            if not d['image_uris']['small'] or not d['image_uris']['normal']:
+                d['image_uris']["small"].append(face["image_uris"]["small"])
+                d['image_uris']["normal"].append(face["image_uris"]["normal"])
+            if not d['oracle_texts']:
+                d['oracle_texts'].append(face["oracle_text"])
+
+    if not d['image_uris']['small'] or not d['image_uris']['normal']:
+        raise Exception("No image_uris found")
+    if not d['oracle_texts']:
+        raise Exception("No oracle_texts found")
+
+    return d
 
 def format_data(data: list[MtgCard]) -> list[MtgCard]:
     for record in data:
@@ -133,7 +147,10 @@ def format_data(data: list[MtgCard]) -> list[MtgCard]:
         record['name_front'] = formatted_names[0]
         record['name_back'] = formatted_names[1]
         record['types'] = get_fromatted_types(record['type_line'])
-        record['image_uris'] = get_image_uris(record)
+        
+        faces_data = get_faces_data(record)
+        record['image_uris'] = faces_data['image_uris']
+        record['oracle_texts'] = faces_data['oracle_texts']
     return data
 
 async def main(data: list[JsonBlob]) -> None:

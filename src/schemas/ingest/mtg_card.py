@@ -39,10 +39,12 @@ class MtgImageUris(BaseModel):
 
 class CardFace(BaseModel):
     image_uris: Optional[MtgImageUris] = None
+    oracle_text: str
 
 class MtgCard(BaseModel):
     name: str
     id: UUID4str
+    oracle_text: Optional[str] = None
     prices: MtgCardPrices
     colors: List[str] = Field(default_factory=list)
     cmc: float
