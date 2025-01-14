@@ -4,7 +4,7 @@ from typing import Annotated
 from config.settings import get_firebase_user_from_token, get_settings
 from api.service import pool as service
 from schemas import UUID4str
-from schemas.api.mtg_card import RequestUpdateCardCount
+from schemas.api.mtg_card import RequestUpdateCardCount, ResponseCardNode
 from schemas.api.pool import RequestCreatePool
 
 router = APIRouter()
@@ -47,7 +47,7 @@ async def add_cards_to_pool(
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
     pool_id: str,
     cards: list[RequestUpdateCardCount]
-):
+) -> list[ResponseCardNode]:
     """adds cards to a pool"""
     session = request.app.session
     result = await session.execute_write(service.update_number_of_cards_in_pool, user["uid"], pool_id, cards)
@@ -58,7 +58,7 @@ async def get_cards_in_pool(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
     pool_id: str
-):
+) -> list[ResponseCardNode]:
     """gets all the cards in a pool"""
     session = request.app.session
     result = await session.execute_read(service.get_cards_in_pool, user["uid"], pool_id)

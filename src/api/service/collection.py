@@ -1,10 +1,9 @@
 from uuid import UUID
 from neo4j import AsyncManagedTransaction
-from schemas.api.collection import ResponseCardInCollection
-from schemas.api.mtg_card import RequestUpdateCardCount
+from schemas.api.mtg_card import RequestUpdateCardCount, ResponseCardNode
 from api.service.card import get_cards, handle_card_count_updates
 
-async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardInCollection]:
+async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardNode]:
     """ Returns the user's collection """
     query = """
     MATCH (u:User {uid: $uid})-[r:Owns]->(c:Card)
@@ -14,7 +13,7 @@ async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[Respons
     return await response.data()
 
 
-async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardInCollection]:
+async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardNode]:
     card_nodes = await get_cards(tx, cards)
 
     """ Adds or removes cards from the user's collection """

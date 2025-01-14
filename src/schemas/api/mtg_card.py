@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, PositiveInt, model_validator
 from typing import List, Optional
 
 from schemas import URLstr, UUID4str
@@ -67,3 +67,8 @@ class RequestUpdateCardCount(BaseModel):
     
 class RequestUpdateCardCountResponse(RequestUpdateCardCount):
     node: MtgCard
+
+
+class ResponseCardNode(BaseModel):
+    node: MtgCard
+    number_owned: Optional[PositiveInt] = 1

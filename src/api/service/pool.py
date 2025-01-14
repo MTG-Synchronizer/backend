@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
 from api.service.card import get_cards, handle_card_count_updates
-from schemas.api.mtg_card import RequestUpdateCardCount
+from schemas.api.mtg_card import RequestUpdateCardCount, ResponseCardNode
 from schemas.api.pool import RequestCreatePool
 
 
@@ -50,7 +50,7 @@ async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     response = await tx.run(query, uid=uid, pool_id=pool_id)
     return await response.data()
 
-async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]):
+async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardNode] :
     check_if_user_has_pool(tx, uid, pool_id)
     card_nodes = await get_cards(tx, cards)
 
@@ -71,13 +71,13 @@ async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID,
     return await response.data()
 
 
-async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
+async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> list[ResponseCardNode]:
     check_if_user_has_pool(tx, uid, pool_id)
 
     """ Gets all the cards in a pool """
     query = """
     MATCH (p:Pool {pool_id: $pool_id})-[:CONTAINS]->(c:Card)
-    RETURN c
+    RETURN c as node
     """
 
     response = await tx.run(query, uid=uid, pool_id=pool_id)
