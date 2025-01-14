@@ -14,6 +14,7 @@ async def get_cards(tx: AsyncManagedTransaction, cards: list[RequestUpdateCardCo
             "scryfall_id": card["scryfall_id"],
             "name_front": get_formatted_card(card["name"])[0] if not card["scryfall_id"] else None,
             "update_amount": card["update_amount"],
+            "number_owned": card["number_owned"]
         } for card in dump
     ]
 

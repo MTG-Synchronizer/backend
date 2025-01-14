@@ -54,12 +54,15 @@ class MtgCard(BaseModel):
 class RequestUpdateCardCount(BaseModel):
     name: Optional[str] = None
     scryfall_id: Optional[UUID4str] = None
-    update_amount: int
+    update_amount: Optional[int] = None
+    number_owned: Optional[int] = None
 
     @model_validator(mode='after')
-    def check_name_or_scryfall_id(self):
-        if not self.name and not self.scryfall_id:
+    def xor_check(self):
+        if not ((self.name != None) != (self.scryfall_id != None)):
             raise ValueError('Either name or scryfall_id must be provided.')
+        if not ((self.update_amount != None) != (self.number_owned != None)):
+            raise ValueError('Either update_amount or number_owned must be provided.')
         return self
     
 class RequestUpdateCardCountResponse(RequestUpdateCardCount):

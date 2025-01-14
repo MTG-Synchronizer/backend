@@ -29,8 +29,8 @@ async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid:
     MERGE (u)-[r:Owns]->(c)
 
     // Set the quantity of the relationship
-    ON CREATE SET r.quantity = card.update_amount
-    ON MATCH SET r.quantity = r.quantity + card.update_amount
+    ON CREATE SET r.quantity = COALESCE(card.update_amount, card.number_owned)
+    ON MATCH SET r.quantity = COALESCE(card.number_owned, r.quantity + card.update_amount)
 
     // Use a conditional operation for deletion
     WITH c, r, r.quantity AS quantity

@@ -46,7 +46,7 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def root():
     return {
-        "message": "Welcome to the MTG Decklist API",
+        "message": "Welcome to the MTG Synchronizer API",
     }
 
 app.include_router(user.router, prefix="/user", tags=["user"])
