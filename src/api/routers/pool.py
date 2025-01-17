@@ -46,12 +46,24 @@ async def add_cards_to_pool(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
     pool_id: str,
-    cards: list[RequestUpdateCardCount]
+    cards: list[str]
 ) -> list[ResponseCardNode]:
     """adds cards to a pool"""
     session = request.app.session
-    result = await session.execute_write(service.update_number_of_cards_in_pool, user["uid"], pool_id, cards)
+    result = await session.execute_write(service.add_cards_to_pool, user["uid"], pool_id, cards)
     return result
+
+@router.delete("/{pool_id}/cards")
+async def remove_cards_from_pool(
+    request: Request,
+    user: Annotated[dict, Depends(get_firebase_user_from_token)],
+    pool_id: str,
+    cards: list[UUID4str]
+):
+    """removes cards from a pool"""
+    session = request.app.session
+    await session.execute_write(service.remove_cards_from_pool, user["uid"], pool_id, cards)
+    return
 
 @router.get("/{pool_id}/cards")
 async def get_cards_in_pool(

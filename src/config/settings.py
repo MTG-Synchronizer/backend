@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str
     TAG: str
     FRONTEND_URL: str
+    ALLOW_ORIGINS: list[str]
 
 @lru_cache()
 def get_settings() -> Settings:

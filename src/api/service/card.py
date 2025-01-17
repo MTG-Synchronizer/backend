@@ -48,20 +48,3 @@ async def get_cards(tx: AsyncManagedTransaction, cards: list[RequestUpdateCardCo
         raise HTTPException(status_code=404, detail={"error": "Card not found", "missing_cards": list(missing_cards)})
     
     return formatted_cards
-
-handle_card_count_updates = """
-    // Set the quantity of the relationship
-    ON CREATE SET r.quantity = COALESCE(card.update_amount, card.number_owned)
-    ON MATCH SET r.quantity = COALESCE(card.number_owned, r.quantity + card.update_amount)
-
-    // Use a conditional operation for deletion
-    WITH c, r, r.quantity AS quantity
-    FOREACH (_ IN CASE WHEN quantity <= 0 THEN [1] ELSE [] END |
-        DELETE r
-    )
-    
-    // Return the card scryfall id and the quantity
-    RETURN 
-    c as node,
-    CASE WHEN quantity <= 0 THEN 0 ELSE r.quantity END AS number_owned
-"""

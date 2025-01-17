@@ -1,7 +1,8 @@
 from uuid import UUID
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
-from api.service.card import get_cards, handle_card_count_updates
+from api.service.card import get_cards
+from schemas import UUID4str
 from schemas.api.mtg_card import RequestUpdateCardCount, ResponseCardNode
 from schemas.api.pool import RequestCreatePool
 
@@ -50,8 +51,10 @@ async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     response = await tx.run(query, uid=uid, pool_id=pool_id)
     return await response.data()
 
-async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardNode] :
+async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[str]) -> list[ResponseCardNode] :
     check_if_user_has_pool(tx, uid, pool_id)
+
+    cards = [RequestUpdateCardCount(name=card, ignore_amount=True) for card in cards]
     card_nodes = await get_cards(tx, cards)
 
     """ Adds or removes cards from the pool"""
@@ -59,16 +62,27 @@ async def update_number_of_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID,
     MATCH (p:Pool {pool_id: $pool_id})
     UNWIND $cards AS card
     MATCH (c:Card {scryfall_id: card.node.scryfall_id})
-    
-    // Create or update the relationship between the pool and the card
     MERGE (p)-[r:CONTAINS]->(c)
+    RETURN c as node
     """
-
-    # Set the quantity of the relationship
-    query += handle_card_count_updates    
 
     response = await tx.run(query, uid=uid, pool_id=pool_id, cards=card_nodes)
     return await response.data()
+
+async def delete_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[UUID4str]) -> None:
+    check_if_user_has_pool(tx, uid, pool_id)
+
+    """ Deletes cards from the pool """
+    query = """
+    MATCH (p:Pool {pool_id: $pool_id})
+    UNWIND $cards AS card
+    MATCH (c:Card {scryfall_id: cards})
+    MATCH (p)-[r:CONTAINS]->(c)
+    DELETE r
+    """
+
+    await tx.run(query, uid=uid, pool_id=pool_id, cards=cards)
+    return
 
 
 async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> list[ResponseCardNode]:
