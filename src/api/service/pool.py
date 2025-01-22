@@ -10,12 +10,27 @@ from schemas.api.pool import RequestCreatePool
 async def check_if_user_has_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> bool:
     """ Checks if a user owns a pool """
     query = """
-    MATCH (u:User {uid: $uid})-[:HAS]->(p:Pool {id: $pool_id})
+    MATCH (u:User {uid: $uid})-[:HAS]->(p:Pool {pool_id: $pool_id})
     RETURN p
     """
     response = await tx.run(query, uid=uid, pool_id=pool_id)
-    if not bool(await response.data()):
+    data = await response.data()
+
+    if not data:
         raise HTTPException(status_code=401, detail="User does not own pool")
+    
+
+async def get_pool_card_colors(tx: AsyncManagedTransaction, pool_id: UUID) -> list[str]:
+    """ Gets all the colors of the cards in a pool """
+    query = """
+    MATCH (p:Pool {pool_id: $pool_id})-[:CONTAINS]->(c:Card)
+    UNWIND c.colors AS color
+    WITH DISTINCT color
+    RETURN COLLECT(color) AS unique_colors
+    """
+    response = await tx.run(query, pool_id=pool_id)
+    data = await response.data()
+    return data[0]['unique_colors']
 
 async def create_pool(tx: AsyncManagedTransaction, uid: UUID, pool: RequestCreatePool):
     
@@ -41,7 +56,7 @@ async def get_pools(tx: AsyncManagedTransaction, uid: UUID):
     return await response.data()
 
 async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
-    check_if_user_has_pool(tx, uid, pool_id)
+    await check_if_user_has_pool(tx, uid, pool_id)
 
     """ Deletes a pool of cards """
     query = """
@@ -51,10 +66,9 @@ async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     response = await tx.run(query, uid=uid, pool_id=pool_id)
     return await response.data()
 
-async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[str]) -> list[ResponseCardNode] :
+async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardNode] :
     check_if_user_has_pool(tx, uid, pool_id)
 
-    cards = [RequestUpdateCardCount(name=card, ignore_amount=True) for card in cards]
     card_nodes = await get_cards(tx, cards)
 
     """ Adds or removes cards from the pool"""
@@ -69,14 +83,14 @@ async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUI
     response = await tx.run(query, uid=uid, pool_id=pool_id, cards=card_nodes)
     return await response.data()
 
-async def delete_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[UUID4str]) -> None:
-    check_if_user_has_pool(tx, uid, pool_id)
+async def remove_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[UUID4str]) -> None:
+    await check_if_user_has_pool(tx, uid, pool_id)
 
     """ Deletes cards from the pool """
     query = """
     MATCH (p:Pool {pool_id: $pool_id})
     UNWIND $cards AS card
-    MATCH (c:Card {scryfall_id: cards})
+    MATCH (c:Card {scryfall_id: card})
     MATCH (p)-[r:CONTAINS]->(c)
     DELETE r
     """
@@ -86,7 +100,7 @@ async def delete_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id
 
 
 async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> list[ResponseCardNode]:
-    check_if_user_has_pool(tx, uid, pool_id)
+    await check_if_user_has_pool(tx, uid, pool_id)
 
     """ Gets all the cards in a pool """
     query = """

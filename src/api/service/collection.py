@@ -6,7 +6,7 @@ from api.service.card import get_cards
 async def get_collection(tx: AsyncManagedTransaction, uid: UUID) -> list[ResponseCardInCollection]:
     """ Returns the user's collection """
     query = """
-    MATCH (u:User {uid: $uid})-[r:Owns]->(c:Card)
+    MATCH (u:User {uid: $uid})-[r:OWNS]->(c:Card)
     RETURN c as node, r.quantity as number_owned
     """
     response = await tx.run(query, uid=uid)
@@ -23,7 +23,7 @@ async def update_number_of_cards_in_collection(tx: AsyncManagedTransaction, uid:
     MATCH (c:Card {scryfall_id: card.node.scryfall_id})
     
     // Create or update the relationship between the user and the card
-    MERGE (u)-[r:Owns]->(c)
+    MERGE (u)-[r:OWNS]->(c)
 
     // Set the quantity of the relationship
     ON CREATE SET r.quantity = COALESCE(card.update_amount, card.number_owned)

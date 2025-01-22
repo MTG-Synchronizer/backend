@@ -1,9 +1,76 @@
-from pydantic import BaseModel, PositiveInt, model_validator
-from typing import List, Optional
+from pydantic import BaseModel, Field, PositiveInt, model_validator
+from typing import ClassVar, List, Optional
 
 from schemas import URLstr, UUID4str
 
-class MtgCard(BaseModel):
+
+from pydantic import BaseModel
+from typing import Optional
+
+mtg_card_legalities_list = [
+    "standard",
+    "future",
+    "historic",
+    "timeless",
+    "gladiator",
+    "pioneer",
+    "explorer",
+    "modern",
+    "legacy",
+    "pauper",
+    "vintage",
+    "penny",
+    "commander",
+    "oathbreaker",
+    "standardbrawl",
+    "brawl",
+    "alchemy",
+    "paupercommander",
+    "duel",
+    "oldschool",
+    "premodern",
+]
+
+# def create_mtg_card_legalities_model(default_value: Optional[bool] = False):
+#     """Dynamically generates a Pydantic model with legality fields."""
+#     fields = {legality: (Optional[bool], Field(default=default_value)) for legality in mtg_card_legalities_list}
+#     return type("MtgCardLegalities", (BaseModel,), {"__annotations__": {k: v[0] for k, v in fields.items()}, **fields})
+
+# # Create the model with a default value of `False`
+# MtgCardLegalities = create_mtg_card_legalities_model()
+
+#  -----------------
+
+class MtgCardLegalities(BaseModel):
+    legality_standard: bool
+    legality_future: bool
+    legality_historic: bool
+    legality_timeless: bool
+    legality_gladiator: bool
+    legality_pioneer: bool
+    legality_explorer: bool
+    legality_modern: bool
+    legality_legacy: bool
+    legality_pauper: bool
+    legality_vintage: bool
+    legality_penny: bool
+    legality_commander: bool
+    legality_oathbreaker: bool
+    legality_standardbrawl: bool
+    legality_brawl: bool
+    legality_alchemy: bool
+    legality_paupercommander: bool
+    legality_duel: bool
+    legality_oldschool: bool
+    legality_premodern: bool
+
+class MtgCardPrices(BaseModel):
+    price_usd: Optional[float] = None
+    price_usd_foil: Optional[float] = None
+    price_eur: Optional[float] = None
+    price_tix: Optional[float] = None
+
+class MtgCard(MtgCardLegalities, MtgCardPrices):
     scryfall_id: UUID4str
     full_name: str
     name_front: str
@@ -11,7 +78,7 @@ class MtgCard(BaseModel):
 
     oracle_texts: list[str]
 
-    total_recurrences: Optional[int]
+    total_recurrences: Optional[int] = 0
 
     types: List[str]
 
@@ -23,47 +90,24 @@ class MtgCard(BaseModel):
     img_uris_small: List[URLstr]
     img_uris_normal: List[URLstr]
 
-
-    price_usd: Optional[float] = None
-    price_usd_foil: Optional[float] = None
-    price_eur: Optional[float] = None
-    price_tix: Optional[float] = None
-
-    legality_standard: Optional[str]
-    legality_future: Optional[str]
-    legality_historic: Optional[str]
-    legality_timeless: Optional[str]
-    legality_gladiator: Optional[str]
-    legality_pioneer: Optional[str]
-    legality_explorer: Optional[str]
-    legality_modern: Optional[str]
-    legality_legacy: Optional[str]
-    legality_pauper: Optional[str]
-    legality_vintage: Optional[str]
-    legality_penny: Optional[str]
-    legality_commander: Optional[str]
-    legality_oathbreaker: Optional[str]
-    legality_standardbrawl: Optional[str]
-    legality_brawl: Optional[str]
-    legality_alchemy: Optional[str]
-    legality_paupercommander: Optional[str]
-    legality_duel: Optional[str]
-    legality_oldschool: Optional[str]
-    legality_premodern: Optional[str]
-
-
-
-class RequestUpdateCardCount(BaseModel):
+class RequestUpdateCard(BaseModel):
     name: Optional[str] = None
     scryfall_id: Optional[UUID4str] = None
+
+    @model_validator(mode='after')
+    def identifier_xor_check(self):
+        if not ((self.name != None) != (self.scryfall_id != None)):
+            raise ValueError('Either name or scryfall_id must be provided.')
+        return self
+    
+
+class RequestUpdateCardCount(RequestUpdateCard):
     update_amount: Optional[int] = None
     number_owned: Optional[int] = None
     ignore_amount: Optional[bool] = False
 
     @model_validator(mode='after')
-    def xor_check(self):
-        if not ((self.name != None) != (self.scryfall_id != None)):
-            raise ValueError('Either name or scryfall_id must be provided.')
+    def quantity_xor_check(self):
         if not self.ignore_amount:
             if not ((self.update_amount != None) != (self.number_owned != None)):
                 raise ValueError('Either update_amount or number_owned must be provided.')

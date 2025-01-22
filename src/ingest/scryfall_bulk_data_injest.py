@@ -15,6 +15,7 @@ sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from schemas.ingest.mtg_card import MtgCard
 from utils.request import fetch_url
 from utils.ingest import chunk_iterable, get_settings
+from schemas.api.mtg_card import mtg_card_legalities_list
 
 
 # Custom types
@@ -111,7 +112,7 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
         """
     await tx.run(query, data=data)
 
-def get_faces_data(card: MtgCard) -> list[dict]:
+def set_faces_data(card: MtgCard) -> list[dict]:
     d = {
         "image_uris": {
             "small": [],
@@ -141,6 +142,13 @@ def get_faces_data(card: MtgCard) -> list[dict]:
 
     return d
 
+def set_legalities(record: MtgCard):
+    legalities = {}
+    
+    for legality in mtg_card_legalities_list:
+        legalities[legality] = record['legalities'][legality] == "legal"
+    return legalities
+
 def preprocess_card_data(data: list[MtgCard]) -> list[MtgCard]:
     idx_to_delete = []
 
@@ -159,9 +167,12 @@ def preprocess_card_data(data: list[MtgCard]) -> list[MtgCard]:
         record['types'] = get_fromatted_types(record['type_line'])
         
         # Get the faces data (image URIs and oracle texts)
-        faces_data = get_faces_data(record)
+        faces_data = set_faces_data(record)
         record['image_uris'] = faces_data['image_uris']
         record['oracle_texts'] = faces_data['oracle_texts']
+
+        # Set the legalities
+        record['legalities'] = set_legalities(record)
     
     # Delete the cards with the layout "art_series"
     for idx in reversed(idx_to_delete):
