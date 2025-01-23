@@ -37,7 +37,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().ALLOW_ORIGINS,
+    allow_origins=get_settings().ALLOW_ORIGINS.split(','),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,6 +53,3 @@ app.include_router(user.router, prefix="/user", tags=["user"])
 app.include_router(pool.router, prefix="/pool", tags=["pool"])
 app.include_router(collection.router, prefix="/collection", tags=["collection"])
 app.include_router(pool_suggestions.router, prefix="/pool/suggestions", tags=["pool-suggestions"])
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
