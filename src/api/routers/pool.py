@@ -50,12 +50,20 @@ async def add_cards_to_pool(
 ) -> list[ResponseCardNode]:
     """adds cards to a pool"""
     session = request.app.session
-    
-    for card in cards:
-        card.ignore_amount = True
-
     result = await session.execute_write(service.add_cards_to_pool, user["uid"], pool_id, cards)
     return result
+
+
+@router.post("/{pool_id}/cards/ignore")
+async def ignore_cards_in_pool(
+    request: Request,
+    user: Annotated[dict, Depends(get_firebase_user_from_token)],
+    pool_id: str,
+    cards: list[UUID4str]
+)-> list[ResponseCardNode]:
+    """removes cards from a pool"""
+    session = request.app.session
+    return await session.execute_write(service.ignore_cards_in_pool, user["uid"], pool_id, cards)
 
 @router.delete("/{pool_id}/cards")
 async def remove_cards_from_pool(

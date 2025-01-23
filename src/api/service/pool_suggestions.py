@@ -9,17 +9,19 @@ async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
     pool_colors = []
     
     query = """
+    MATCH (p:Pool {pool_id: $pool_id})
     MATCH (p:Pool) - [:CONTAINS] -> (pc:Card)
-    WHERE p.pool_id = $pool_id
+    MATCH (p:Pool) - [:IGNORE] -> (ic:Card)
 
     MATCH (u:User) - [:OWNS] -> (cc:Card)
     WHERE u.uid = $uid
 
-    WITH COLLECT(pc) AS pool_cards, COLLECT(cc) AS collection_cards
+    WITH COLLECT(pc) AS pool_cards, COLLECT(cc) AS collection_cards, COLLECT(ic) AS ignore_cards
 
     // Match all connected cards
     MATCH (c:Card)-[r:CONNECTED]-(:Card)
     WHERE NOT c IN pool_cards
+    AND NOT c IN ignore_cards
     """
 
     if params.from_collection:
@@ -40,8 +42,8 @@ async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
     if params.filters.preserve_colors:
         pool_colors = await get_pool_card_colors(tx, pool_id)
         query += """
-        // Filters cards based on color match
-        AND ALL(color IN c.colors WHERE color IN $pool_colors)
+        // Filter out cards that are not in the pool colors
+        AND NONE(color IN c.colors WHERE NOT color IN $pool_colors)
         """
 
     query += """

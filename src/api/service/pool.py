@@ -66,37 +66,41 @@ async def delete_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID):
     response = await tx.run(query, uid=uid, pool_id=pool_id)
     return await response.data()
 
-async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCardCount]) -> list[ResponseCardNode] :
+async def update_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, card_ids: list[UUID4str], merge_query=str) -> list[ResponseCardNode]:
     check_if_user_has_pool(tx, uid, pool_id)
 
-    card_nodes = await get_cards(tx, cards)
-
-    """ Adds or removes cards from the pool"""
     query = """
     MATCH (p:Pool {pool_id: $pool_id})
-    UNWIND $cards AS card
-    MATCH (c:Card {scryfall_id: card.node.scryfall_id})
-    MERGE (p)-[r:CONTAINS]->(c)
+    UNWIND $card_ids AS card_id
+    MATCH (c:Card {scryfall_id: card_id})
+    """
+
+    query += merge_query
+
+    query += """
     RETURN c as node
     """
 
-    response = await tx.run(query, uid=uid, pool_id=pool_id, cards=card_nodes)
+    response = await tx.run(query, uid=uid, pool_id=pool_id, card_ids=card_ids)
     return await response.data()
 
-async def remove_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[UUID4str]) -> None:
-    await check_if_user_has_pool(tx, uid, pool_id)
+async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[ResponseCardNode]) -> list[ResponseCardNode] :
+    card_nodes = await get_cards(tx, cards)
+    card_ids = [card["scryfall_id"] for card in card_nodes]
 
-    """ Deletes cards from the pool """
-    query = """
-    MATCH (p:Pool {pool_id: $pool_id})
-    UNWIND $cards AS card
-    MATCH (c:Card {scryfall_id: card})
-    MATCH (p)-[r:CONTAINS]->(c)
+    merge_query = "MERGE (p)-[r:CONTAINS]->(c)"
+    return await update_cards_in_pool(tx, uid, pool_id, card_ids, merge_query)
+
+async def ignore_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, card_ids: list[UUID4str]) -> list[ResponseCardNode]:
+    merge_query = "MERGE (p)-[r:IGNORE]->(c)"
+    return await update_cards_in_pool(tx, uid, pool_id, card_ids, merge_query)
+    
+async def remove_cards_from_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, card_ids: list[UUID4str]) -> None:
+    merge_query = """
+    MATCH (p)-[r:CONTAINS]->(c) 
     DELETE r
     """
-
-    await tx.run(query, uid=uid, pool_id=pool_id, cards=cards)
-    return
+    return await update_cards_in_pool(tx, uid, pool_id, card_ids, merge_query)
 
 
 async def get_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID) -> list[ResponseCardNode]:
