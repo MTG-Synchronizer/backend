@@ -7,7 +7,7 @@ from firebase_admin.auth import verify_id_token
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=None,  # Disable .env file
         extra="allow",
         case_sensitive=False,
     )
@@ -23,8 +23,7 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     # Use lru_cache to avoid loading .env file for every request
-    config = Settings()
-    return config
+    return Settings()
 
 
 bearer_scheme = HTTPBearer(auto_error=False)

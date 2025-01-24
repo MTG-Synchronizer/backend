@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
-import uvicorn
 from api.routers import collection, pool, user, pool_suggestions
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator

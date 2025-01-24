@@ -4,7 +4,6 @@ FROM python:3.11-slim-bullseye
 WORKDIR /app
 
 # Copy files from the root directory to the working directory
-COPY .env /app/.env
 COPY service-account.json /app/service-account.json
 COPY requirements.txt /app/requirements.txt
 COPY src/ /app/src/
