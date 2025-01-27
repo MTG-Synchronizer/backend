@@ -49,7 +49,6 @@ def get_scryfall_bulk_data(url):
 async def create_indexes_and_constraints(session: AsyncSession) -> None:
     queries = [
         # constraints
-        "CREATE CONSTRAINT full_name IF NOT EXISTS FOR (c:Card) REQUIRE c.full_name IS UNIQUE",
         "CREATE CONSTRAINT name_front IF NOT EXISTS FOR (c:Card) REQUIRE c.name_front IS UNIQUE",
         "CREATE CONSTRAINT scryfall_id IF NOT EXISTS FOR (c:Card) REQUIRE c.scryfall_id IS UNIQUE",
         
@@ -66,7 +65,7 @@ async def build_query(tx: AsyncManagedTransaction, data: list[JsonBlob]) -> None
         MERGE (c:Card {name_front: record.name_front})
         SET
             c.scryfall_id = record.id,
-            c.full_name = toUpper(record.name),
+            c.full_name = record.name,
             c.name_front = record.name_front,
             c.name_back = record.name_back,
 

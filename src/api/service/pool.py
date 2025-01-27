@@ -86,9 +86,9 @@ async def update_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
 
 async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[ResponseCardNode]) -> list[ResponseCardNode] :
     card_nodes = await get_cards(tx, cards)
-    card_ids = [card["scryfall_id"] for card in card_nodes]
+    card_ids = [card["node"]["scryfall_id"] for card in card_nodes]
 
-    merge_query = "MERGE (p)-[r:CONTAINS]->(c)"
+    merge_query = """MERGE (p)-[r:CONTAINS]->(c)"""
     return await update_cards_in_pool(tx, uid, pool_id, card_ids, merge_query)
 
 async def ignore_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, card_ids: list[UUID4str]) -> list[ResponseCardNode]:
