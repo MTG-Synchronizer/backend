@@ -1,11 +1,9 @@
-import json
-import firebase_admin
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from firebase_admin import auth, credentials
+from firebase_admin import auth
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
