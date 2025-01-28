@@ -2,7 +2,7 @@
 from utils.db_processing import get_settings
 from neo4j import GraphDatabase, ManagedTransaction
 
-def cleanup(tx: ManagedTransaction):
+def set_relationships(tx: ManagedTransaction):
     # Delete all relationships that target themselves
     query = """
     MATCH (n)-[r]-(n)
@@ -40,4 +40,4 @@ if __name__ == "__main__":
     
     with GraphDatabase.driver(URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
         with driver.session(database="neo4j") as session:
-            session.execute_write(cleanup)
+            session.execute_write(set_relationships)
