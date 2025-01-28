@@ -1,5 +1,5 @@
 import uuid
-from ingest.scryfall_bulk_data_injest import set_faces_data, set_legalities, preprocess_card_data
+from db_processing.scryfall_bulk_data_injest import set_faces_data, set_legalities, preprocess_card_data
 from utils.card import get_formatted_card, get_fromatted_types
 from schemas.api.mtg_card import mtg_card_legalities_list 
 import pytest

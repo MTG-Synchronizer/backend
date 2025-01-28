@@ -1,7 +1,7 @@
 import asyncio
 import argparse
 import json
-from utils.ingest import chunk_iterable, get_settings
+from utils.db_processing import chunk_iterable, get_settings
 from neo4j import AsyncGraphDatabase, AsyncManagedTransaction, AsyncSession
 from codetiming import Timer
 
@@ -21,7 +21,6 @@ def load_data(file_name: str) -> list:
             decks.append(cards)
     
     return decks
-
 
 # Modified to take multiple relationships in a single transaction
 async def create_or_update_relationships(tx: AsyncManagedTransaction, pairs: list):

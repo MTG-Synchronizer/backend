@@ -1,5 +1,5 @@
 
-from utils.ingest import get_settings
+from utils.db_processing import get_settings
 from neo4j import GraphDatabase, ManagedTransaction
 
 def cleanup(tx: ManagedTransaction):

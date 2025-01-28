@@ -14,7 +14,7 @@ from utils.card import get_formatted_card, get_fromatted_types
 sys.path.insert(1, os.path.realpath(Path(__file__).resolve().parents[1]))
 from schemas.ingest.mtg_card import MtgCard
 from utils.request import fetch_url
-from utils.ingest import chunk_iterable, get_settings
+from utils.db_processing import chunk_iterable, get_settings
 from schemas.api.mtg_card import mtg_card_legalities_list
 
 
