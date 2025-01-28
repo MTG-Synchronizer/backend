@@ -3,55 +3,54 @@ from neo4j import AsyncManagedTransaction
 from api.service.pool import check_if_user_has_pool, get_pool_card_colors
 from schemas.api.pool_suggestions import RequestCardSuggestions
 
-async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, params:RequestCardSuggestions):
+async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, params: RequestCardSuggestions):
     await check_if_user_has_pool(tx, uid, pool_id)
-
-    pool_colors = []
     
-    query = """
+    pool_colors = []
+    filter_queries = []
+
+    base_query = """
     MATCH (p:Pool {pool_id: $pool_id})
-    MATCH (p:Pool) - [:CONTAINS] -> (pc:Card)
-    MATCH (p:Pool) - [:IGNORE] -> (ic:Card)
-
-    MATCH (u:User) - [:OWNS] -> (cc:Card)
+    OPTIONAL MATCH (p:Pool) - [:CONTAINS] -> (pc:Card)
+    OPTIONAL MATCH (p:Pool) - [:IGNORE] -> (ic:Card)
+    OPTIONAL MATCH (u:User) - [:OWNS] -> (cc:Card)
     WHERE u.uid = $uid
-
-    WITH COLLECT(pc) AS pool_cards, COLLECT(cc) AS collection_cards, COLLECT(ic) AS ignore_cards
-
-    // Match all connected cards
-    MATCH (c:Card)-[r:CONNECTED]-(:Card)
-    WHERE NOT c IN pool_cards
-    AND NOT c IN ignore_cards
+    WITH COALESCE(COLLECT(DISTINCT pc), []) AS pool_cards, 
+         COALESCE(COLLECT(DISTINCT cc), []) AS collection_cards, 
+         COALESCE(COLLECT(DISTINCT ic), []) AS ignore_cards
+    MATCH (c:Card)-[r:CONNECTED]-(b:Card)
+    WHERE b IN pool_cards
+      AND NOT c IN pool_cards
+      AND NOT c IN ignore_cards
     """
 
     if params.from_collection:
-        query += "AND c IN collection_cards "
+        filter_queries.append("AND c IN collection_cards ")
     else:
-        query += "AND NOT c IN collection_cards "
+        filter_queries.append("AND NOT c IN collection_cards ")
 
     if params.filters.max_price:
-        query += "AND c.price_usd <= $body.filters.max_price "
+        filter_queries.append("AND c.price_usd <= $body.filters.max_price ")
 
     if params.filters.legalities:
-        for legality in params.filters.legalities:
-            query += f"AND c.legality_{legality} = True "
+        legality_filters = " ".join([f"AND c.legality_{legality} = True " for legality in params.filters.legalities])
+        filter_queries.append(legality_filters)
 
     if params.filters.ignore_basic_lands:
-        query += "AND NOT c.name_front IN ['PLAINS', 'ISLAND', 'SWAMP', 'MOUNTAIN', 'FOREST'] "
+        filter_queries.append("AND NOT c.name_front IN ['PLAINS', 'ISLAND', 'SWAMP', 'MOUNTAIN', 'FOREST'] ")
 
     if params.filters.preserve_colors:
         pool_colors = await get_pool_card_colors(tx, pool_id)
-        query += """
-        // Filter out cards that are not in the pool colors
+        filter_queries.append("""
         AND NONE(color IN c.colors WHERE NOT color IN $pool_colors)
-        """
+        """)
 
-    query += """
-        WITH c, COALESCE(SUM(r.dynamicWeight), 0) AS totalWeight
-        RETURN c as node, totalWeight as sync_score
-        ORDER BY totalWeight DESC
+    final_query = base_query + "".join(filter_queries) + """
+        WITH c, COALESCE(SUM(r.total_recurrences), 0) AS sync_score
+        RETURN c as node, sync_score
+        ORDER BY sync_score DESC
         LIMIT 200
     """
 
-    response = await tx.run(query, uid=uid, pool_id=pool_id, body=params.model_dump(), pool_colors=pool_colors)
+    response = await tx.run(final_query, uid=uid, pool_id=pool_id, body=params.model_dump(), pool_colors=pool_colors)
     return await response.data()
