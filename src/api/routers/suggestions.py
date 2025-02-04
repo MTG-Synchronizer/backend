@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, Query, Request
 from typing import Annotated, List, Optional
 from config.settings import get_firebase_user_from_token
-from api.service import pool_suggestions as service
+from api.service import suggestions as service
 from schemas.api.pool_suggestions import CardFilters, RequestCardSuggestions
 
 router = APIRouter()
 
-@router.get("/{pool_id}")
+@router.get("/pool/{pool_id}")
 async def get_card_suggestions(
     request: Request,
     user: Annotated[dict, Depends(get_firebase_user_from_token)],
@@ -30,4 +30,15 @@ async def get_card_suggestions(
 
     session = request.app.session
     result = await session.execute_read(service.get_card_suggestions, user["uid"], pool_id, params)
+    return result
+
+
+@router.get("/collection-clusters")
+async def get_card_clusters_from_collection(
+    request: Request,
+    user: Annotated[dict, Depends(get_firebase_user_from_token)]
+):
+    """gets card clusters from user's collection"""
+    session = request.app.session
+    result = await session.execute_read(service.get_card_clusters_from_collection, user["uid"])
     return result

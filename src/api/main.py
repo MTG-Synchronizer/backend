@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials
-from api.routers import collection, pool, user, pool_suggestions
+from api.routers import collection, pool, suggestions, user
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from config.settings import get_settings
@@ -51,4 +51,4 @@ async def root():
 app.include_router(user.router, prefix="/user", tags=["user"])
 app.include_router(pool.router, prefix="/pool", tags=["pool"])
 app.include_router(collection.router, prefix="/collection", tags=["collection"])
-app.include_router(pool_suggestions.router, prefix="/pool/suggestions", tags=["pool-suggestions"])
+app.include_router(suggestions.router, prefix="/suggestions", tags=["suggestions"])

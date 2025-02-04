@@ -54,3 +54,21 @@ async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
 
     response = await tx.run(final_query, uid=uid, pool_id=pool_id, body=params.model_dump(), pool_colors=pool_colors)
     return await response.data()
+
+
+async def get_card_clusters_from_collection(tx: AsyncManagedTransaction, uid: UUID):
+    query ="""
+    MATCH (u:User {uid: $uid})-[:OWNS]->(card:Card)-[:BELONGS_TO]->(community:CardCommunity)
+    WITH community, collect(card) as communityCards
+    WHERE size(communityCards) > 5
+    MATCH (c1:Card)-[r:CONNECTED]->(c2:Card)
+    WHERE c1 IN communityCards AND c2 IN communityCards
+    RETURN 
+        community.id as community_id,
+        communityCards as nodes,
+        avg(r.dynamicWeight) as average_synergy
+    ORDER BY average_synergy DESC;
+    """
+
+    response = await tx.run(query, uid=uid)
+    return await response.data()
