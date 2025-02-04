@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
-from schemas.api.mtg_card import RequestUpdateCardCountResponse, ResponseCardNode
+from schemas.api.mtg_card import RequestUpdateCard, RequestUpdateCardCountResponse
 from utils.card import get_formatted_card
 
 
-async def get_cards(tx: AsyncManagedTransaction, cards: list[ResponseCardNode]) -> list[RequestUpdateCardCountResponse]:
+async def get_cards(tx: AsyncManagedTransaction, cards: list[RequestUpdateCard]) -> list[RequestUpdateCardCountResponse]:
     """ Returns a list of card nodes by name or id. Raise HTTPException if any card is not found """
 
     dump = [card.model_dump() for card in cards]

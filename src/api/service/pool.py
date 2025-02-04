@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from neo4j import AsyncManagedTransaction
 from api.service.card import get_cards
 from schemas import UUID4str
-from schemas.api.mtg_card import RequestUpdateCardCount, ResponseCardNode
+from schemas.api.mtg_card import RequestUpdateCard, RequestUpdateCardCount, ResponseCardNode
 from schemas.api.pool import RequestCreatePool
 
 
@@ -33,7 +33,6 @@ async def get_pool_card_colors(tx: AsyncManagedTransaction, pool_id: UUID) -> li
     return data[0]['unique_colors']
 
 async def create_pool(tx: AsyncManagedTransaction, uid: UUID, pool: RequestCreatePool):
-    
     """ Creates a pool of cards """
     query = """
     MATCH (u:User {uid: $uid})
@@ -44,6 +43,9 @@ async def create_pool(tx: AsyncManagedTransaction, uid: UUID, pool: RequestCreat
 
     response = await tx.run(query, uid=uid, pool=pool)
     data = await response.data()
+    if 'cards' in pool:
+        cards = [RequestUpdateCard(**card) for card in pool['cards']]
+        await add_cards_to_pool(tx, uid, data[0]['p']['pool_id'], cards)
     return data[0]['p']
 
 async def get_pools(tx: AsyncManagedTransaction, uid: UUID):
@@ -84,7 +86,7 @@ async def update_cards_in_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
     response = await tx.run(query, uid=uid, pool_id=pool_id, card_ids=card_ids)
     return await response.data()
 
-async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[ResponseCardNode]) -> list[ResponseCardNode] :
+async def add_cards_to_pool(tx: AsyncManagedTransaction, uid: UUID, pool_id: UUID, cards: list[RequestUpdateCard]) -> list[ResponseCardNode] :
     card_nodes = await get_cards(tx, cards)
     card_ids = [card["node"]["scryfall_id"] for card in card_nodes]
 
