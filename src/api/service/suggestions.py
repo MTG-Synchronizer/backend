@@ -46,7 +46,7 @@ async def get_card_suggestions(tx: AsyncManagedTransaction, uid: UUID, pool_id: 
         """)
 
     final_query = base_query + "".join(filter_queries) + """
-        WITH c, COALESCE(SUM(r.total_recurrences), 0) AS sync_score
+        WITH c, COALESCE(SUM(r.dynamicWeight), 0) AS sync_score
         RETURN c as node, sync_score
         ORDER BY sync_score DESC
         LIMIT 200
